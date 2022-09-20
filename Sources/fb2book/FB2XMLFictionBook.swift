@@ -24,7 +24,19 @@ public struct FB2XMLFictionBook: Codable {
             finalNodes.append(.div(.img(base64: cover.data.base64EncodedString(),
                                         type: .image(cover.contentType == "image/jpeg" ? .jpeg : .png),
                                         alt: "",
-                                        attributes: [.style(safe: "object-fit: contain; width: 100%; padding-right: 8px")])))
+                                        attributes: [.style(safe: "object-fit: contain; width: 100%")])))
+        }
+
+        if let annotation = self.description.titleInfo.annotation?.sections {
+            let ttl = annotation
+            for each in ttl {
+                let contents = toContent(contents: each.contents)
+                var node = Node.strong()
+                for content in contents {
+                    node.append(content)
+                }
+                finalNodes.append(node)
+            }
         }
 
         let ttl = self.body.title
@@ -42,18 +54,18 @@ public struct FB2XMLFictionBook: Codable {
         finalNodes.append(.br)
         var nodes = [Node]()
         for each in self.body.sections {
-            nodes.append(contentsOf: renderNested(contents: each))
+            nodes.append(Node.div(Node.fragment(renderNested(contents: each))))
         }
         for node in nodes {
             finalNodes.append(node)
             finalNodes.append(Node.br)
         }
-        let finalDiv = Node.div(attributes: [.style(safe: "width: 100%")], Node.fragment(finalNodes))
+        let finalDiv = Node.div(attributes: [.style(safe: "font-size: calc(100% + 2vw); padding: 8px")], Node.fragment(finalNodes))
         let doc = Node.document(
             .html(.head(.meta(name: "charset", content: "UTF-8"),
                         .meta(contentType: .text(.html, charset: .utf8)),
-                        .meta(viewport: .width(.deviceWidth))),
-                  .body(attributes: [.style(safe: "width: 100%; font-size: calc(100% + 2vw)")], finalDiv)))
+                        .meta(viewport: .width(.deviceWidth), .initialScale(1.0))),
+                  .body(attributes: [.style(safe: "")], finalDiv)))
         return render(doc)
     }
 
@@ -68,7 +80,7 @@ public struct FB2XMLFictionBook: Codable {
     private func toContent(sectionContent: FB2XMLSectionContents) -> [Node] {
         switch sectionContent {
         case .section(let array):
-            return renderNested(contents: array)
+            return [.div(Node.fragment(renderNested(contents: array)))]
         case .title(let fB2XMLTitle):
             switch fB2XMLTitle {
             case .p(let fB2XMLP):
@@ -77,11 +89,11 @@ public struct FB2XMLFictionBook: Codable {
                 return [Node.br]
             }
         case .p(let fB2XMLP):
-            return toContent(contents: fB2XMLP.contents)
+            return [Node.div(Node.fragment(toContent(contents: fB2XMLP.contents)))]
         case .emptyLine:
             return [Node.br]
         case .image(let fB2XMLRef):
-            return [Node.br]
+            return [getImage(ref: fB2XMLRef)]
         case .epigraph(let array):
             return getEpigraph(epigraphs: array)
         case .subtitle(let string):
@@ -137,7 +149,7 @@ public struct FB2XMLFictionBook: Codable {
         for epigraph in epigraphs {
             switch epigraph {
             case .p(let fB2XMLP):
-                nodes.append(contentsOf: toContent(contents: fB2XMLP.contents))
+                nodes.append(Node.div(Node.fragment(toContent(contents: fB2XMLP.contents))))
             case .emptyLine:
                 nodes.append(.br)
             case .unknown:
@@ -160,17 +172,17 @@ public struct FB2XMLFictionBook: Codable {
     private func toContent(content: FB2XMLPContents) -> Node {
         switch content {
         case .image(let fB2XMLRef):
-            return Node.br
+            return getImage(ref: fB2XMLRef)
         case .strong(let string):
             return Node.strong(.text(string))
         case .emphasis(let string):
-            return Node.strong(.text(string))
+            return Node.em(.text(string))
         case .a(let string, let fB2XMLRef):
             return Node.a(.text(string))
         case .strikethrough(let string):
             return Node.text(string)
         case .text(let string):
-            return Node.text("\(string.utf8)")
+            return Node.p(.text(string))
         case .sub(let string):
             return Node.sub(.text(string))
         case .sup(let string):
@@ -178,6 +190,23 @@ public struct FB2XMLFictionBook: Codable {
         case .code(let string):
             return Node.code(.text(string))
         }
+    }
+
+    private func getImage(ref: FB2XMLRef) -> Node {
+        var node = Node.div()
+        let href = ref.href
+        if href.starts(with: "#") {
+            var pk = href
+            pk.removeFirst()
+            let realRef = "\(pk)"
+            if let firstComplaintBinary = binary.first(where: { $0.id == realRef }) {
+                node.append(.img(base64: firstComplaintBinary.data.base64EncodedString(),
+                                 type: .image(firstComplaintBinary.contentType == "image/jpeg" ? .jpeg : .png),
+                                 alt: "",
+                                 attributes: [.style(safe: "object-fit: contain; width: 100%")]))
+            }
+        }
+        return node
     }
 
     public func getCoverImageXML() -> FB2XMLBinary? {
@@ -200,7 +229,7 @@ public struct FB2XMLFictionBook: Codable {
     public func getCoverImage() -> Data? {
         return getCoverImageXML()?.data
     }
-    
+
     public enum CodingKeys: String, CodingKey {
         case description
         case body = "body"
