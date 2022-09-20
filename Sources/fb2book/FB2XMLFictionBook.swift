@@ -10,7 +10,10 @@ import XMLCoder
 import Html
 
 public struct FB2XMLFictionBook: Codable {
-    
+
+    static let regex = try! NSRegularExpression(pattern: "xmlns", options: .caseInsensitive)
+    static let regexCaptureLink = try! NSRegularExpression(pattern: "xmlns:.+", options: .caseInsensitive)
+
     let description: FB2XMLDescription
     let body: FB2XMLBody
     let binary: [FB2XMLBinary]
