@@ -55,7 +55,7 @@ public struct FB2XMLFictionBook: Codable {
         finalNodes.append(.br)
         var nodes = [Node]()
         for each in self.body.sections {
-            nodes.append(Node.div(Node.fragment(renderNested(contents: [each]))))
+            nodes.append(Node.div(Node.fragment(renderNested(contents: each))))
         }
         for node in nodes {
             finalNodes.append(node)

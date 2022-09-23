@@ -9,9 +9,14 @@ import Foundation
 
 public struct FB2XMLP: Codable {
     public let contents: [FB2XMLPContents]
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        self.contents = try container.decode([FB2XMLPContents].self)
+
+        do {
+            self.contents = try container.decode([FB2XMLPContents].self)
+        } catch {
+            self.contents = [.text(try container.decode(String.self))]
+        }
     }
 }
