@@ -11,7 +11,7 @@ import XMLCoder
 public struct FB2XMLDate: Codable, DynamicNodeDecoding {
     
     public let value: String?
-    public let readable: String
+    public let readable: String?
     
     enum CodingKeys: String, CodingKey {
         case value = "value"
