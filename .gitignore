@@ -26,3 +26,5 @@ Pods/
 fastlane/reports.xml
 fastlane/report.xml
 .idea
+vendor
+
